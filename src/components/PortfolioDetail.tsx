@@ -468,10 +468,10 @@ export const PortfolioDetail = () => {
                 </DetailCard>
               ))}
               {project.videos?.map((video, index) => {
-                // 경로의 공백을 URL 인코딩
-                const encodedVideoPath = video.split('/').map(part => 
-                  part.includes(' ') ? encodeURIComponent(part) : part
-                ).join('/');
+                // 경로의 각 부분을 개별적으로 인코딩하여 공백 및 특수문자 처리
+                // 첫 번째 빈 문자열(루트 슬래시)은 유지하고 나머지만 인코딩
+                const parts = video.split('/');
+                const encodedVideoPath = parts.map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/');
                 
                 return (
                   <DetailCard
