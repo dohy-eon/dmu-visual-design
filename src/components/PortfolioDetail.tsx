@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { theme } from '../styles/theme';
 import { portfolioData } from '../data/portfolioData';
 
@@ -149,8 +150,8 @@ const DetailGallery = styled.div`
 `;
 
 const DetailCard = styled(motion.div)`
-  flex: 0 0 400px;
-  aspect-ratio: 1/1;
+  flex: 0 0 auto;
+  height: 400px;
   border-radius: 18px;
   overflow: hidden;
   background: #050b16;
@@ -159,6 +160,7 @@ const DetailCard = styled(motion.div)`
   align-items: center;
   justify-content: center;
   transition: transform 0.3s;
+  cursor: pointer;
 
   &:hover {
     transform: translateY(-5px);
@@ -166,8 +168,8 @@ const DetailCard = styled(motion.div)`
   }
 
   img {
-    width: 100%;
     height: 100%;
+    width: auto;
     object-fit: contain;
     display: block;
     background-color: #f5f5f5;
@@ -180,10 +182,225 @@ const DetailCard = styled(motion.div)`
   }
 `;
 
+const ModalOverlay = styled(motion.div)`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(5, 10, 20, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+`;
+
+const ModalContent = styled(motion.div)`
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 0 80px;
+
+  @media (max-width: ${theme.breakpoints.mobile}) {
+    padding: 0 60px;
+    gap: 10px;
+  }
+`;
+
+const ImageContainer = styled(motion.div)`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  max-height: 90vh;
+`;
+
+const ModalImage = styled.img`
+  max-width: 100%;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid ${theme.colors.glassBorder};
+  color: ${theme.colors.textWhite};
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 300;
+  transition: all 0.3s;
+  z-index: 1001;
+
+  &:hover {
+    background: ${theme.colors.accentCyan};
+    border-color: ${theme.colors.accentCyan};
+    color: ${theme.colors.bgDark};
+  }
+`;
+
+const NavButton = styled.button<{ position: 'left' | 'right' }>`
+  position: relative;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid ${theme.colors.glassBorder};
+  color: ${theme.colors.textWhite};
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 300;
+  transition: all 0.3s;
+  z-index: 1002;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  &:hover:not(:disabled) {
+    background: ${theme.colors.accentCyan};
+    border-color: ${theme.colors.accentCyan};
+    color: ${theme.colors.bgDark};
+    transform: scale(1.1);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: ${theme.colors.glassBorder};
+      color: ${theme.colors.textWhite};
+      transform: scale(1);
+    }
+  }
+
+  @media (max-width: ${theme.breakpoints.mobile}) {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+`;
+
+interface SelectedImageInfo {
+  image: string;
+  projectId: string;
+  imageIndex: number;
+}
+
 export const PortfolioDetail = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
   const data = category ? portfolioData[category] : null;
+  const [selectedImageInfo, setSelectedImageInfo] = useState<SelectedImageInfo | null>(null);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+
+  const getCurrentImageList = () => {
+    if (!selectedImageInfo || !data) return [];
+    const project = data.projects.find(p => p.id === selectedImageInfo.projectId);
+    return project?.images || [];
+  };
+
+  const goToPreviousImage = () => {
+    if (!selectedImageInfo || !data) return;
+    const imageList = getCurrentImageList();
+    const currentIndex = selectedImageInfo.imageIndex;
+    
+    if (currentIndex > 0) {
+      setSlideDirection('right');
+      setSelectedImageInfo({
+        image: imageList[currentIndex - 1],
+        projectId: selectedImageInfo.projectId,
+        imageIndex: currentIndex - 1,
+      });
+    }
+  };
+
+  const goToNextImage = () => {
+    if (!selectedImageInfo || !data) return;
+    const imageList = getCurrentImageList();
+    const currentIndex = selectedImageInfo.imageIndex;
+    
+    if (currentIndex < imageList.length - 1) {
+      setSlideDirection('left');
+      setSelectedImageInfo({
+        image: imageList[currentIndex + 1],
+        projectId: selectedImageInfo.projectId,
+        imageIndex: currentIndex + 1,
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (!selectedImageInfo || !data) return;
+      
+      if (e.key === 'Escape') {
+        setSlideDirection(null);
+        setSelectedImageInfo(null);
+      } else if (e.key === 'ArrowLeft') {
+        const project = data.projects.find(p => p.id === selectedImageInfo.projectId);
+        const imageList = project?.images || [];
+        const currentIndex = selectedImageInfo.imageIndex;
+        
+        if (currentIndex > 0) {
+          setSlideDirection('right');
+          setSelectedImageInfo({
+            image: imageList[currentIndex - 1],
+            projectId: selectedImageInfo.projectId,
+            imageIndex: currentIndex - 1,
+          });
+        }
+      } else if (e.key === 'ArrowRight') {
+        const project = data.projects.find(p => p.id === selectedImageInfo.projectId);
+        const imageList = project?.images || [];
+        const currentIndex = selectedImageInfo.imageIndex;
+        
+        if (currentIndex < imageList.length - 1) {
+          setSlideDirection('left');
+          setSelectedImageInfo({
+            image: imageList[currentIndex + 1],
+            projectId: selectedImageInfo.projectId,
+            imageIndex: currentIndex + 1,
+          });
+        }
+      }
+    };
+
+    if (selectedImageInfo) {
+      document.addEventListener('keydown', handleKeyPress);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedImageInfo, data]);
 
   if (!data) {
     return <div>포트폴리오를 찾을 수 없습니다.</div>;
@@ -235,7 +452,18 @@ export const PortfolioDetail = () => {
             <ProjectDescText>{project.description}</ProjectDescText>
             <DetailGallery>
               {project.images?.map((image, index) => (
-                <DetailCard key={index} whileHover={{ y: -5 }}>
+                <DetailCard 
+                  key={index} 
+                  whileHover={{ y: -5 }}
+                  onClick={() => {
+                    setSlideDirection(null);
+                    setSelectedImageInfo({
+                      image,
+                      projectId: project.id,
+                      imageIndex: index,
+                    });
+                  }}
+                >
                   <img src={image} alt={`${project.name} ${index + 1}`} />
                 </DetailCard>
               ))}
@@ -257,6 +485,88 @@ export const PortfolioDetail = () => {
 
         <div style={{ height: '200px' }} />
       </Container>
+
+      <AnimatePresence mode="wait">
+        {selectedImageInfo && data && (() => {
+          const project = data.projects.find(p => p.id === selectedImageInfo.projectId);
+          if (!project || !project.images) return null;
+          
+          const imageList = project.images;
+          const hasMultipleImages = imageList.length > 1;
+          const canGoPrevious = selectedImageInfo.imageIndex > 0;
+          const canGoNext = selectedImageInfo.imageIndex < imageList.length - 1;
+          
+          return (
+            <ModalOverlay
+              key="modal-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setSlideDirection(null);
+                setSelectedImageInfo(null);
+              }}
+            >
+              <ModalContent
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <CloseButton onClick={() => {
+                  setSlideDirection(null);
+                  setSelectedImageInfo(null);
+                }}>
+                  ×
+                </CloseButton>
+                {hasMultipleImages && (
+                  <NavButton 
+                    position="left" 
+                    disabled={!canGoPrevious}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (canGoPrevious) {
+                        goToPreviousImage();
+                      }
+                    }}
+                  >
+                    ‹
+                  </NavButton>
+                )}
+                <ImageContainer
+                  key={selectedImageInfo.image}
+                  initial={{ 
+                    opacity: 0, 
+                    x: slideDirection === 'left' ? 50 : slideDirection === 'right' ? -50 : 0 
+                  }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ 
+                    opacity: 0, 
+                    x: slideDirection === 'left' ? -50 : slideDirection === 'right' ? 50 : 0 
+                  }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  <ModalImage src={selectedImageInfo.image} alt="확대 이미지" />
+                </ImageContainer>
+                {hasMultipleImages && (
+                  <NavButton 
+                    position="right" 
+                    disabled={!canGoNext}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (canGoNext) {
+                        goToNextImage();
+                      }
+                    }}
+                  >
+                    ›
+                  </NavButton>
+                )}
+              </ModalContent>
+            </ModalOverlay>
+          );
+        })()}
+      </AnimatePresence>
     </DetailWrapper>
   );
 };
