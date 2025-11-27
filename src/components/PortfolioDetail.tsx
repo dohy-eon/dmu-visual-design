@@ -467,18 +467,42 @@ export const PortfolioDetail = () => {
                   <img src={image} alt={`${project.name} ${index + 1}`} />
                 </DetailCard>
               ))}
-              {project.videos?.map((video, index) => (
-                <DetailCard
-                  key={`video-${index}`}
-                  style={{ flex: '0 0 800px', aspectRatio: '16/9', background: '#000' }}
-                  whileHover={{ y: -5 }}
-                >
-                  <video controls>
-                    <source src={video} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                </DetailCard>
-              ))}
+              {project.videos?.map((video, index) => {
+                // 경로의 공백을 URL 인코딩
+                const encodedVideoPath = video.split('/').map(part => 
+                  part.includes(' ') ? encodeURIComponent(part) : part
+                ).join('/');
+                
+                return (
+                  <DetailCard
+                    key={`video-${index}`}
+                    style={{ flex: '0 0 800px', aspectRatio: '16/9', background: '#000' }}
+                    whileHover={{ y: -5 }}
+                  >
+                    <video 
+                      controls 
+                      preload="metadata"
+                      playsInline
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        const target = e.target as HTMLVideoElement;
+                        console.error('Video load error:', {
+                          src: target.src,
+                          error: target.error,
+                          networkState: target.networkState,
+                          readyState: target.readyState
+                        });
+                      }}
+                      onLoadedMetadata={(e) => {
+                        console.log('Video metadata loaded:', (e.target as HTMLVideoElement).src);
+                      }}
+                    >
+                      <source src={encodedVideoPath} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  </DetailCard>
+                );
+              })}
             </DetailGallery>
           </ProjectSection>
         ))}
