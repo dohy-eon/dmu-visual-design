@@ -81,7 +81,7 @@ export const timelineData: TimelineItem[] = [
   {
     date: '2026.1.7 17:00까지',
     title: '서류제출',
-    description: '졸업(예정)증명서, 성적증명서',
+    description: '입학원서, 졸업(예정)증명서, 전 학년 성적증명서',
   },
   {
     date: '2026.2.2 16:00',
