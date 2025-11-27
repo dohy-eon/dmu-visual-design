@@ -467,42 +467,35 @@ export const PortfolioDetail = () => {
                   <img src={image} alt={`${project.name} ${index + 1}`} />
                 </DetailCard>
               ))}
-              {project.videos?.map((video, index) => {
-                // 경로의 각 부분을 개별적으로 인코딩하여 공백 및 특수문자 처리
-                // 첫 번째 빈 문자열(루트 슬래시)은 유지하고 나머지만 인코딩
-                const parts = video.split('/');
-                const encodedVideoPath = parts.map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/');
-                
-                return (
-                  <DetailCard
-                    key={`video-${index}`}
-                    style={{ flex: '0 0 800px', aspectRatio: '16/9', background: '#000' }}
-                    whileHover={{ y: -5 }}
+              {project.videos?.map((video, index) => (
+                <DetailCard
+                  key={`video-${index}`}
+                  style={{ flex: '0 0 800px', aspectRatio: '16/9', background: '#000' }}
+                  whileHover={{ y: -5 }}
+                >
+                  <video 
+                    controls 
+                    preload="metadata"
+                    playsInline
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      const target = e.target as HTMLVideoElement;
+                      console.error('Video load error:', {
+                        src: target.src,
+                        error: target.error,
+                        networkState: target.networkState,
+                        readyState: target.readyState
+                      });
+                    }}
+                    onLoadedMetadata={(e) => {
+                      console.log('Video metadata loaded:', (e.target as HTMLVideoElement).src);
+                    }}
                   >
-                    <video 
-                      controls 
-                      preload="metadata"
-                      playsInline
-                      crossOrigin="anonymous"
-                      onError={(e) => {
-                        const target = e.target as HTMLVideoElement;
-                        console.error('Video load error:', {
-                          src: target.src,
-                          error: target.error,
-                          networkState: target.networkState,
-                          readyState: target.readyState
-                        });
-                      }}
-                      onLoadedMetadata={(e) => {
-                        console.log('Video metadata loaded:', (e.target as HTMLVideoElement).src);
-                      }}
-                    >
-                      <source src={encodedVideoPath} type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
-                  </DetailCard>
-                );
-              })}
+                    <source src={video} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </DetailCard>
+              ))}
             </DetailGallery>
           </ProjectSection>
         ))}
